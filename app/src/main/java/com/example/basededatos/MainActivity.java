@@ -1,6 +1,7 @@
 package com.example.basededatos;
 
 import android.content.ContentValues;
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
@@ -25,80 +26,80 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void Registrar(View view) {
-        AdminSQLiteOpenHelper admin = new AdminSQLiteOpenHelper(this,
-                "administracion", null, 1);
-        SQLiteDatabase BaseDeDatos = admin.getWritableDatabase();
+        AdminSQLiteOpenHelper admin = new AdminSQLiteOpenHelper(this, "administracion", null, 1);
+        SQLiteDatabase db = admin.getWritableDatabase();
 
         String codigo = et_codigo.getText().toString();
         String descripcion = et_descripcion.getText().toString();
         String precio = et_precio.getText().toString();
 
         if (!codigo.isEmpty() && !descripcion.isEmpty() && !precio.isEmpty()) {
-            ContentValues registro = new ContentValues();
-            registro.put("codigo", codigo);
-            registro.put("descripcion", descripcion);
-            registro.put("precio", precio);
+            Cursor cursor = db.rawQuery("SELECT codigo FROM articulos WHERE codigo = ?", new String[]{codigo});
+            if (cursor.moveToFirst()) {
+                Toast.makeText(this, "El código ya está registrado", Toast.LENGTH_SHORT).show();
+            } else {
+                ContentValues registro = new ContentValues();
+                registro.put("codigo", codigo);
+                registro.put("descripcion", descripcion);
+                registro.put("precio", precio);
 
-            BaseDeDatos.insert("articulos", null, registro);
-            BaseDeDatos.close();
+                db.insert("articulos", null, registro);
+                Toast.makeText(this, "Registro exitoso", Toast.LENGTH_SHORT).show();
 
-            et_codigo.setText("");
-            et_descripcion.setText("");
-            et_precio.setText("");
-
-            Toast.makeText(this, "Registro exitoso", Toast.LENGTH_SHORT).show();
+                limpiarCampos();
+            }
+            cursor.close();
+            db.close();
         } else {
-            Toast.makeText(this, "Deberá llenar todos los campos", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Debe llenar todos los campos", Toast.LENGTH_SHORT).show();
         }
     }
+
     public void Buscar(View view) {
         AdminSQLiteOpenHelper admin = new AdminSQLiteOpenHelper(this, "administracion", null, 1);
-        SQLiteDatabase BaseDeDatabase = admin.getWritableDatabase();
+        SQLiteDatabase db = admin.getReadableDatabase();
 
         String codigo = et_codigo.getText().toString();
 
         if (!codigo.isEmpty()) {
-            Cursor file = BaseDeDatabase.rawQuery(
-                    "SELECT descripcion, precio FROM articulos WHERE codigo = " + codigo, null);
-
-            if (file.moveToFirst()) {
-                et_descripcion.setText(file.getString(0));
-                et_precio.setText(file.getString(1));
-                BaseDeDatabase.close();
+            Cursor cursor = db.rawQuery("SELECT descripcion, precio FROM articulos WHERE codigo = ?", new String[]{codigo});
+            if (cursor.moveToFirst()) {
+                et_descripcion.setText(cursor.getString(0));
+                et_precio.setText(cursor.getString(1));
             } else {
                 Toast.makeText(this, "No existe el artículo", Toast.LENGTH_SHORT).show();
-                BaseDeDatabase.close();
             }
+            cursor.close();
+            db.close();
         } else {
-            Toast.makeText(this, "Debes introducir el código del artículo", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Debe introducir el código del artículo", Toast.LENGTH_SHORT).show();
         }
     }
+
     public void Eliminar(View view) {
         AdminSQLiteOpenHelper admin = new AdminSQLiteOpenHelper(this, "administracion", null, 1);
-        SQLiteDatabase BaseDatabase = admin.getWritableDatabase();
+        SQLiteDatabase db = admin.getWritableDatabase();
 
         String codigo = et_codigo.getText().toString();
 
         if (!codigo.isEmpty()) {
-            int cantidad = BaseDatabase.delete("articulos", "codigo=" + codigo, null);
-            BaseDatabase.close();
-
-            et_codigo.setText("");
-            et_descripcion.setText("");
-            et_precio.setText("");
+            int cantidad = db.delete("articulos", "codigo = ?", new String[]{codigo});
+            db.close();
 
             if (cantidad == 1) {
                 Toast.makeText(this, "Artículo eliminado exitosamente", Toast.LENGTH_SHORT).show();
+                limpiarCampos();
             } else {
                 Toast.makeText(this, "El artículo no existe", Toast.LENGTH_SHORT).show();
             }
         } else {
-            Toast.makeText(this, "Debes introducir el código del artículo", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Debe introducir el código del artículo", Toast.LENGTH_SHORT).show();
         }
     }
+
     public void Modificar(View view) {
         AdminSQLiteOpenHelper admin = new AdminSQLiteOpenHelper(this, "administracion", null, 1);
-        SQLiteDatabase BaseDatabase = admin.getWritableDatabase();
+        SQLiteDatabase db = admin.getWritableDatabase();
 
         String codigo = et_codigo.getText().toString();
         String descripcion = et_descripcion.getText().toString();
@@ -109,17 +110,29 @@ public class MainActivity extends AppCompatActivity {
             registro.put("descripcion", descripcion);
             registro.put("precio", precio);
 
-            int cantidad = BaseDatabase.update("articulos", registro, "codigo=" + codigo, null);
-            BaseDatabase.close();
+            int cantidad = db.update("articulos", registro, "codigo = ?", new String[]{codigo});
+            db.close();
 
             if (cantidad == 1) {
                 Toast.makeText(this, "Artículo modificado correctamente", Toast.LENGTH_SHORT).show();
+                limpiarCampos();
             } else {
                 Toast.makeText(this, "El artículo no existe", Toast.LENGTH_SHORT).show();
             }
         } else {
-            Toast.makeText(this, "Debes llenar todos los campos", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Debe llenar todos los campos", Toast.LENGTH_SHORT).show();
         }
     }
 
+    public void verLista(View view) {
+        Intent intent = new Intent(this, ListaArticulosActivity.class);
+        startActivity(intent);
+    }
+
+    // Limpia los campos
+    private void limpiarCampos() {
+        et_codigo.setText("");
+        et_descripcion.setText("");
+        et_precio.setText("");
+    }
 }
